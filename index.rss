@@ -1,23 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?><rss version="2.0"><channel>
-<title>Benjamin C Meyer's Git Achievements</title>
-<item><title>Apprentice Seamstress (Level 2)</title><description>amended a commit with git commit --amend.</description></item>
-<item><title>Apprentice Presenter (Level 2)</title><description>Shows one or more objects (blobs, trees, tags and commits) with git show</description></item>
-<item><title>Apprentice Socialite (Level 3)</title><description>pushed a branch to a remote repository using git push</description></item>
-<item><title>Apprentice Goldsmith (Level 2)</title><description>Reviewed patches before committing with git diff --cached.</description></item>
+<title>Dirkjan Bussink's Git Achievements</title>
 <item><title>Apprentice Presenter (Level 1)</title><description>Shows one or more objects (blobs, trees, tags and commits) with git show</description></item>
-<item><title>Apprentice Historian (Level 2)</title><description>Investigate the commit log using git log.</description></item>
-<item><title>Apprentice Socialite (Level 2)</title><description>pushed a branch to a remote repository using git push</description></item>
-<item><title>Apprentice Stone Mason (Level 3)</title><description>Added files to the index area for inclusion in the next commit with git add</description></item>
-<item><title>Apprentice Gipsy (Level 1)</title><description>Create, list, delete a tag signed with GPG using git tag</description></item>
-<item><title>Carpenter (Level 6)</title><description>Custom git hooks are installed which help catch issues before they are shared.</description></item>
-<item><title>Master Carpenter (Level 18)</title><description>Custom git hooks are installed which help catch issues before they are shared.</description></item>
-<item><title>Apprentice Carpenter (Level 1)</title><description>Custom git hooks are installed which help catch issues before they are shared.</description></item>
-<item><title>Weaver</title><description>Investigate old branches by using git reflog</description></item>
-<item><title>Apprentice Investigator (Level 1)</title><description>Used git blame to annotates a file with information about how each line changed.</description></item>
-<item><title>Apprentice Chimney Sweeper (Level 1)</title><description>Used git gc to run a number of housekeeping tasks on the current repository.</description></item>
-<item><title>Apprentice Blacksmith (Level 1)</title><description>Created a branch using git checkout -b.</description></item>
-<item><title>Librarian</title><description>Looked for change that introduce or remove a string with git log -S</description></item>
-<item><title>Apprentice Historian (Level 1)</title><description>Investigate the commit log using git log.</description></item>
-<item><title>Apprentice Merchant (Level 1)</title><description>Added an external repository with git remote add.</description></item>
-<item><title>Apprentice Seamstress (Level 1)</title><description>amended a commit with git commit --amend.</description></item>
 </channel></rss>
