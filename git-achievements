@@ -10,10 +10,7 @@
 # 2. Redistributions in binary form must reproduce the above copyright
 #    notice, this list of conditions and the following disclaimer in the
 #    documentation and/or other materials provided with the distribution.
-# 3. All advertising materials mentioning features or use of this software
-#    must display the following acknowledgement:
-#    This product includes software developed by the <organization>.
-# 4. Neither the name of the project nor the
+# 3. Neither the name of the project nor the
 #    names of its contributors may be used to endorse or promote products
 #    derived from this software without specific prior written permission.
 #
@@ -29,7 +26,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-function git_achivements_command
+function git_achievements_command
 {
     case $2 in
         -p|--publish )
@@ -46,7 +43,7 @@ function git_achivements_command
             echo ""
             echo "Options:"
             echo "    -l --list    Show all achievements."
-            echo "    -p --publish Publish existing achievements and push to origin."
+            echo "    -p --publish Generate achievements html files and if achievements.upload not set to \"true\" add the files and push to origin."
             ;;
     esac
 }
@@ -76,7 +73,7 @@ function unlock_achievement()
     if [ $? -eq 0 ] ; then
         return
     fi
-    output_achievement "$@"
+    output_achievement "$@" >&2
     output_achievement "$@" >> "${ACHIEVEMENTSLOGFILE}"
 
     if [ "`git config --global achievement.upload`" = "true" ] ; then
@@ -127,18 +124,26 @@ function count_unlock_achievement
     fi
 }
 
+function unalias_command
+{
+    #XXX maybe this should be recursive?
+    local cmdline=$(git config --get "alias.$1")
+    echo $cmdline
+}
+
 function check_for_achievements
 {
     # Anyone know of a cleaner way of checking for hooks?
     gitdir=`git rev-parse --git-dir`
     hooks=`ls $gitdir/hooks/ 2>/dev/null | grep -v sample | wc -l`
+    gitdir=`git rev-parse --git-dir 2>/dev/null`
+    hooks=`ls -F $gitdir/hooks/ 2>/dev/null | grep -e '\*$' | grep -ve 'sample\*$' | wc -l`
     if [ ${hooks} -ge 1 ] ; then
         hcount_unlock_achievement "Carpenter" "Custom git hooks are installed which help catch issues before they are shared." "$hooks"
     fi
 
     # Custom command
-    which "git-$1" > /dev/null 2>&1
-    if [[ $? == 0 && $1 != "achievements" ]] ; then
+    if [ -e "`git --exec-path`/$1" ] && [ $1 != "achievements" ] && echo "$1" | grep -q -v ^- ; then
         unlock_achievement "Inventor ($1)" "Used a command that isn't part of the built in Git command"
     fi
 
@@ -149,7 +154,16 @@ function check_for_achievements
             ;;
     esac
 
-    case $1 in
+    local command=$1
+    local expansion=$(unalias_command "$command")
+
+    if [[ $expansion ]] ; then
+      # not a real inventor
+      unlock_achievement "Garage Inventor" "Used a custom alias for a Git command"
+      command="$expansion"
+    fi
+
+    case $command in
        add )
             count_unlock_achievement "Stone Mason" "Added files to the index area for inclusion in the next commit with git add" "$1"
             case $2 in
@@ -168,7 +182,10 @@ function check_for_achievements
             count_unlock_achievement "Hunter" "Used git bisect to perform a binary search to find which change introduced a bug." "$1"
             ;;
         blame )
-            count_unlock_achievement "Investigator" "Used git blame to annotates a file with information about how each line changed." "$1"
+            count_unlock_achievement "Investigator" "Used git blame to annotate a file with information about how each line changed." "$1"
+            ;;
+        bundle )
+            count_unlock_achievement "Delivery Boy" "Move objects and refs by archive with git bundle." "$1"
             ;;
         bundle )
             count_unlock_achievement "Delivery Boy" "Move objects and refs by archive with git bundle." "$1"
@@ -299,6 +316,16 @@ function check_for_achievements
         stash )
             count_unlock_achievement "Product Manager" "Stash the changes in a dirty working directory away with git stash." "$1"
             ;;
+        submodule )
+            case $2 in
+                add )
+                count_unlock_achievement "Cathedral Architect" "Added a submodule to a repository." "submodule add"
+                ;;
+                update )
+                count_unlock_achievement "Cathedral Worker" "Cloned submodule repository and checked out commits specified by superproject." "submodule update"
+                ;;
+            esac
+            ;;
         svn|p4 )
             count_unlock_achievement "Traveler" "Streamed changes between another rcs with git svn or git p4." "$1"
             ;;
@@ -320,50 +347,36 @@ function link_to_git_docs
 }
 
 function clean_logged_achievements() {
-    cat "${ACHIEVEMENTSLOGFILE}" | grep -v '^$' | grep -v 'Git Achievement Unlocked!' | grep -v '*' | sed -e 's/^ *//g'  -e 's/ *$//g'
+    cat "${ACHIEVEMENTSLOGFILE}" | grep -ve '^$' | grep -v 'Git Achievement Unlocked!' | grep -v '*' | sed -e 's/^ *//g'  -e 's/ *$//g'
 }
 
 function publish_achievements
 {
-    gh_pages=`which git-achievements`
-    gh_pages=`dirname $gh_pages`
-    cd $gh_pages
+    git_achievements="$(which git-achievements)"
+    git_achievements_dir="$(dirname "${git_achievements}")"
+    if [ -L "${git_achievements}" ]; then
+      case "$(dirname $(readlink ${git_achievements}))" in
+        /*)
+          git_achievements_dir="$(dirname $(readlink ${git_achievements}))"
+          ;;
+        *)
+          git_achievements_dir="${git_achievements_dir}/$(dirname $(readlink ${git_achievements}))"
+          ;;
+      esac
+    fi
+
+    cd "${git_achievements_dir}"
 
     user=`git config --global user.name`
 
 echo "
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
+<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/>
 <title>${user}'s Git Achievements</title>
-<link rel=\"alternate\" type=\"application/rss+xml\" title\"rss feed\" href=\"index.rss\">
-<style type=\"text/css\">
-a:link { color: gray; }
-a:visited { color : gray; }
-body {
-    background-color: black;
-    color: white;
-    margin: 0 auto;
-    width: 700px;
-    text-align: center;
-}
-li {
-    background-color: #1E2024;
-    border: 1px solid gray;
-    padding: .25em;
-    -moz-border-radius: 5px;
-    -webkit-border-radius: 5px;
-    margin-bottom: .5em;
-}
-div.title {
-    font-weight: bold;
-}
-ul {
-    text-align: left;
-    list-style-type:none;
-}
-#locked {
-    visibility: hidden;
-}
-</style>
+<link rel=\"alternate\" type=\"application/rss+xml\" title=\"rss feed\" href=\"index.rss\"/>
+<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\"/>
 </head>
 <body>
 " > index.html
@@ -383,7 +396,7 @@ ul {
 
     # Unlocked Achievements
     echo "<ul>" >> index.html
-    cat "${ACHIEVEMENTSLOGFILE}" | grep -v '^$' | grep -v 'Git Achievement Unlocked!' | grep -v '*' | sed -e 's/^ *//g'  -e 's/ *$//g' | awk '{ if (NR % 2 != 0) printf "<li><div class=\"title\">" $0 "</div>"; else printf "  <div class=\"info\">" $0 "</div></li>\n" }' | link_to_git_docs | sort >> index.html
+    cat "${ACHIEVEMENTSLOGFILE}" | grep -ve '^$' | grep -v 'Git Achievement Unlocked!' | grep -v '*' | sed -e 's/^ *//g'  -e 's/ *$//g' | awk '{ if (NR % 2 != 0) printf "<li><div class=\"title\">" $0 "</div>"; else printf "  <div class=\"info\">" $0 "</div></li>\n" }' | link_to_git_docs | sort >> index.html
 
     echo "</ul>" >> index.html
 
@@ -423,15 +436,19 @@ There are $total Achievements. Some achievements can be leveled up depending on 
     # Update the RSS feed
     echo '<?xml version="1.0" encoding="utf-8"?><rss version="2.0"><channel>' > index.rss
     echo "<title>${user}'s Git Achievements</title>" >> index.rss
-    cat "${ACHIEVEMENTSLOGFILE}"  | grep -v '^$' | grep -v 'Git Achievement Unlocked!' | grep -v '*' | sed -e 's/^ *//g'  -e 's/ *$//g' | awk '{ if (NR % 2 != 0) printf "<item><title>" $0 "</title>"; else printf "<description>" $0 "</description></item>\n" }' | tail -n 20 | sed '1!G;h;$!d' >> index.rss
+    echo "<description></description>" >> index.rss
+    echo "<link></link>" >> index.rss
+    cat "${ACHIEVEMENTSLOGFILE}"  | grep -ve '^$' | grep -v 'Git Achievement Unlocked!' | grep -v '*' | sed -e 's/^ *//g'  -e 's/ *$//g' | awk '{ if (NR % 2 != 0) printf "<item><title>" $0 "</title>"; else printf "<description>" $0 "</description></item>\n" }' | tail -n 20 | sed '1!G;h;$!d' >> index.rss
     echo '</channel></rss>' >> index.rss
 
     abortcount=`git status | grep 'Changes to be committed' | wc -l`
     if [ ! $abortcount -eq 0 ] ; then
+        echo "There are staged changes in the repository, updates let uncommitted"
         return
     fi
 
     if [ ! "`git config --global achievement.upload`" = "true" ] ; then
+        echo "Global achievement.upload not set to true, updates left uncommited"
         return
     fi
 
@@ -456,7 +473,7 @@ if [ ! "$1" = "achievements" ] ; then
         exit $r
     fi
 else
-    git_achivements_command "$@"
+    git_achievements_command "$@"
 fi
 
 if [ "`echo '$1' | sed -e 's/=.*//g'`" = "--git-dir" ] ; then
